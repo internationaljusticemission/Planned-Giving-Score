@@ -13,6 +13,9 @@ import struct
 import sqlalchemy
 import pandas as pd
 import numpy as np
+from pathlib2 import Path
+
+home = str(Path.home())
 
 
 
@@ -52,7 +55,8 @@ def get_ods_conn(server, database):
 
 # In[]:
     
-
+# Data for the planned giving score comes from donation history, gift types, campaign participation, volunteering,
+# family foundation status, and more. SQL queries for all parts of the score are below
 
 def get_ods_dataframe(db, sql, table):
     with db.connect().execution_options(stream_results=True) as azure_db_con:
@@ -93,10 +97,11 @@ accounts.rename(columns={'Id':'AccountId'}, inplace=True)
 planned_gift.rename(columns={'AccountID':'AccountId'}, inplace=True)
 daf.rename(columns={'AccountID':'AccountId'}, inplace=True)
 stock.rename(columns={'AccountID':'AccountId'}, inplace=True)
-family_foundation = accounts[accounts['Family_Foundation__c'].notna()]
 
+# In[]:
 
-
+# Points for each part of the engagement score are calculated below. The accounts df is the only df that
+# contains more than one component of the final score.
 
 def Rolling_Status_Calc(row):
     if row['Rolling_Status__c'] == 'Active':
@@ -140,6 +145,8 @@ accounts['Recent Giving Points'] = np.where(accounts['Recent Giving Calc']>=3,5,
 
 accounts['Early Donor Points'] = np.where(accounts['npo02__FirstCloseDate__c'] <= pd.to_datetime('2004-12-31'), 5, 0)
 
+# Having a family foundation is a negative for the planned giving score since their family foundation will
+# receive their inheritance
 accounts['Family Foundation Points'] = np.where(accounts['Family_Foundation__c'].isnull(),0,-15)
 
 
@@ -153,7 +160,6 @@ def Years_Donated_Points(row):
 
 
 
-
 accounts['Years_Donated__c'] = accounts['Years_Donated__c'].str.len()/5 + .2
 
 accounts['Giving Years Points']= accounts.apply(Years_Donated_Points, axis=1)
@@ -162,6 +168,8 @@ board_members['Board Member Points']=5
 board_members = board_members.drop_duplicates(subset=['AccountId'], keep='first')
 board_members.drop(['npe5__Contact__c','Id'], axis = 1, inplace=True)
 
+
+# alumni == former IJM employees
 alumni = alumni.drop_duplicates(subset=['AccountId'], keep='first')
 alumni['Alumni Points']=5
 alumni = alumni[['AccountId','Alumni Points']]
@@ -184,9 +192,6 @@ volunteer = volunteer.drop_duplicates(subset=['AccountId'], keep='first')
 volunteer['Volunteer Leader Points']=5
 volunteer = volunteer[['AccountId','Volunteer Leader Points']]
 
-family_foundation['Family Foundation Points'] = -15
-family_foundation = family_foundation[['AccountId','Family Foundation Points']]
-
 
 
 accounts_final=pd.merge(accounts, alumni, on='AccountId', how='left')
@@ -197,7 +202,6 @@ accounts_final=pd.merge(accounts_final, stock, on='AccountId', how='left')
 accounts_final=pd.merge(accounts_final, survey_response, on='AccountId', how='left')
 accounts_final=pd.merge(accounts_final, business_owner, on='AccountId', how='left')
 accounts_final=pd.merge(accounts_final, volunteer, on='AccountId', how='left')
-accounts_final=pd.merge(accounts_final, family_foundation, on='AccountId', how='left')
 
 
 accounts_final=accounts_final.replace(np.nan,0)
@@ -205,13 +209,12 @@ accounts_final=accounts_final.replace(np.nan,0)
 accounts_final['Planned Giving Score']=(accounts_final['Rolling Status Points']+accounts_final['FP Status Points']
 +accounts_final['Cosecutive_Giving_Points']+accounts_final['Recent Giving Points']+accounts_final['Early Donor Points']
 +accounts_final['Family Foundation Points']+accounts_final['Giving Years Points']+accounts_final['Board Member Points']
-+accounts_final['Alumni Points']+accounts_final['Planned Gifts Points']+accounts_final['Stock Gifts Points']+accounts_final['DAF Points']
-+accounts_final['Consider PG Points'])
++accounts_final['Alumni Points']+accounts_final['Planned Gifts Points']+accounts_final['Stock Gifts Points']+accounts_final['DAF Points'])
 
 accounts_final=accounts_final[['AccountId','Planned Giving Score']]
 
 
-# accounts_final.to_csv('{}/OneDrive - International Justice Mission/Python Projects/Planned Giving Score/Planned Giving Score.csv'.format(home))
+accounts_final.to_csv('{}/OneDrive - International Justice Mission/Github/Planned-Giving-Score/Planned Giving Score.csv'.format(home))
 
 
 
