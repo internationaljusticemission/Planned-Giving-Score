@@ -1,3 +1,6 @@
+# Planned Giving Score
+
+
 The planned giving score is a score given to all accounts that indicates how likely they are to give leave IJM a planned gift in their will.
 
 The score does not have a set range.
