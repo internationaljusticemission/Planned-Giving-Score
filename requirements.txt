@@ -1,0 +1,5 @@
+azure-identity>=1.16.0
+pandas>=2.2.1
+pathlib2>=2.3.0
+pyodbc>=5.1.0
+SQLAlchemy>=2.0.29
