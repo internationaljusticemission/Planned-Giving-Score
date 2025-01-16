@@ -159,7 +159,7 @@ def Years_Donated_Points(row):
         return 0
 
 
-
+# 
 accounts['Years_Donated__c'] = accounts['Years_Donated__c'].str.len()/5 + .2
 
 accounts['Giving Years Points']= accounts.apply(Years_Donated_Points, axis=1)
