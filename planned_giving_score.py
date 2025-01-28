@@ -13,10 +13,6 @@ import struct
 import sqlalchemy
 import pandas as pd
 import numpy as np
-from pathlib2 import Path
-
-home = str(Path.home())
-
 
 
 # os.environ['PATH'] = '/opt/homebrew/Cellar/azure-cli/2.59.0/bin'
@@ -242,7 +238,7 @@ accounts_final['Planned Giving Score']=(
 accounts_final=accounts_final[['AccountId','Planned Giving Score']]
 
 ### EXPORT ###
-accounts_final.to_csv('{}/OneDrive - International Justice Mission/Github/Planned-Giving-Score/Planned Giving Score.csv'.format(home), index=False)
+accounts_final.to_csv('Planned_Giving_Score.csv', index=False)
 
 
 
