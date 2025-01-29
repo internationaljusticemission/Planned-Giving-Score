@@ -1,69 +1,5 @@
 -- programs_sql for planned giving
--- subquery
-SELECT 
-    m.Contact__c, 
-    m.Role__c, 
-    m.Start_Date__c, 
-    m.End_Date__c, 
-    m.Program__c, 
-    m.Name, 
-    m.Type__c, 
-    m.RecordTypeId, 
-    m.Program_Id, 
-    c.Id, 
-    c.AccountId
-    
-FROM (
-    SELECT 
-        NAM.VWMember__c.Contact__c, 
-        NAM.VWMember__c.Role__c, 
-        NAM.VWMember__c.Start_Date__c, 
-        NAM.VWMember__c.End_Date__c, 
-        NAM.VWMember__c.Program__c, 
-        CNF.VWPrograms__c.Name, 
-        CNF.VWPrograms__c.Type__c, 
-        CNF.VWPrograms__c.RecordTypeId, 
-        CNF.VWPrograms__c.Id AS Program_Id
-    FROM NAM.VWMember__c LEFT JOIN CNF.VWPrograms__c ON NAM.VWMember__c.Program__c = CNF.VWPrograms__c.Id
-    ) AS m 
 
-LEFT JOIN NAM.VWContact AS c ON m.Contact__c = c.Id
-
-
-/*
-SELECT 
-    m.Contact__c, 
-    m.Role__c, 
-    m.Start_Date__c, 
-    m.End_Date__c, 
-    m.Program__c, 
-    m.Name, 
-    m.Type__c, 
-    m.RecordTypeId, 
-    m.Program_Id, 
-    c.Id, 
-    c.AccountId
-    
-FROM (
-    SELECT 
-        mem.Contact__c, 
-        mem.Role__c, 
-        mem.Start_Date__c, 
-        mem.End_Date__c, 
-        mem.Program__c, 
-        p.Name, 
-        p.Type__c, 
-        p.RecordTypeId, 
-        p.Id AS Program_Id
-    FROM NAM.VWMember__c AS mem
-    LEFT JOIN CNF.VWPrograms__c AS p ON (mem.Program__c = p.Id)
-    ) AS m 
-
-LEFT JOIN NAM.VWContact AS c ON (m.Contact__c = c.Id)
-*/
-
-
-/*
 -- CTE Option
 WITH a AS (
     SELECT 
@@ -94,4 +30,36 @@ SELECT
     
 FROM a
 LEFT JOIN NAM.VWContact AS c ON (a.Contact__c = c.Id)
+
+
+-- Original w/ subquery
+/*
+SELECT 
+    m.Contact__c, 
+    m.Role__c, 
+    m.Start_Date__c, 
+    m.End_Date__c, 
+    m.Program__c, 
+    m.Name, 
+    m.Type__c, 
+    m.RecordTypeId, 
+    m.Program_Id, 
+    c.Id, 
+    c.AccountId
+    
+FROM (
+    SELECT 
+        NAM.VWMember__c.Contact__c, 
+        NAM.VWMember__c.Role__c, 
+        NAM.VWMember__c.Start_Date__c, 
+        NAM.VWMember__c.End_Date__c, 
+        NAM.VWMember__c.Program__c, 
+        CNF.VWPrograms__c.Name, 
+        CNF.VWPrograms__c.Type__c, 
+        CNF.VWPrograms__c.RecordTypeId, 
+        CNF.VWPrograms__c.Id AS Program_Id
+    FROM NAM.VWMember__c LEFT JOIN CNF.VWPrograms__c ON NAM.VWMember__c.Program__c = CNF.VWPrograms__c.Id
+    ) AS m 
+
+LEFT JOIN NAM.VWContact AS c ON m.Contact__c = c.Id
 */
