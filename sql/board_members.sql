@@ -13,9 +13,10 @@ WITH a AS (
 
 SELECT 
     a.npe5__Contact__c, 
-    Id, 
-    AccountId
-FROM a LEFT JOIN NAM.VWContact AS c ON (a.npe5__Contact__c = c.Id)
+    c.Id, 
+    c.AccountId
+FROM a
+LEFT JOIN NAM.VWContact AS c ON (a.npe5__Contact__c = c.Id)
 
 
 

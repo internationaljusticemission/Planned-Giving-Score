@@ -15,7 +15,8 @@ SELECT
     PFO_Partnership_Status__c, 
     Family_Foundation__c, 
     [Type], 
-    Rolling_Status__c, 
+    -- Rolling_Status__c, -- formula field - TEXT(Rolling_Status_Calculated__c)
+    Rolling_Status_Calculated__c,
     Freedom_Partner_Status__c,
     BillingStreet,
     BillingCity,
