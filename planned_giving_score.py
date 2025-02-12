@@ -8,11 +8,9 @@ Created on Tue Jul  2 10:40:45 2024
 
 # In[1]:
 
-from azure.identity import AzureCliCredential
-import struct
-import sqlalchemy
 import pandas as pd
 import numpy as np
+from util import get_ods_conn, get_ods_dataframe
 
 
 # os.environ['PATH'] = '/opt/homebrew/Cellar/azure-cli/2.59.0/bin'
@@ -22,47 +20,13 @@ ods_schema = 'CUBE'
 src_table = 'transactions_summary'
 ods_table = f'{ods_schema}.{src_table}'
 
-
-
-def get_ods_conn(server, database):
-    driver = '{ODBC Driver 18 for SQL Server}'
-    credential = AzureCliCredential()
-    database_token = credential.get_token('https://database.windows.net/')
-    # get bytes from token obtained
-    tokenb = bytes(database_token[0], "UTF-8")
-    exptoken = b''
-    tokenstruct = None
-    for i in tokenb:
-        exptoken += bytes({i})
-        exptoken += bytes(1)
-        tokenstruct = struct.pack("=i", len(exptoken)) + exptoken
-    conn_string = "Driver=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";ApplicationIntent=ReadWrite"
-    SQL_COPT_SS_ACCESS_TOKEN = 1256
-    return sqlalchemy.create_engine(
-        "mssql+pyodbc:///?odbc_connect={0}".format(conn_string),
-        connect_args={'attrs_before': {SQL_COPT_SS_ACCESS_TOKEN: tokenstruct}},
-        fast_executemany=True,
-        pool_size=10,
-        max_overflow=20
-    )
-
-
-
-
 # In[]:
     
 ### EXTRACT ###
 # Data for the planned giving score comes from donation history, gift types, campaign participation, volunteering,
 # family foundation status, and more. SQL queries for all parts of the score are below
 
-def get_ods_dataframe(db, sql, table):
-    with db.connect().execution_options(stream_results=True) as azure_db_con:
-        sql_string = sql
-        df = pd.read_sql_query(sqlalchemy.text(sql_string), azure_db_con)
-    return df
-
-
-db_conn = get_ods_conn(ods_server, ods_database)
+db_engine = get_ods_conn(ods_server, ods_database)
 
 
 contact_sql = "SELECT AccountId, Id,Phone, Email, Alumni_IJM__c, Prayer_Partner__c, MailingStreet, MailingCity,MailingState,MailingPostalCode,MailingCountry FROM NAM.VWContact WHERE MailingCountry IN ('United States', 'Canada')"
@@ -76,16 +40,16 @@ planned_gift_sql = "SELECT DISTINCT AccountID FROM NAM.VWOpportunity WHERE Type 
 survey_response_sql = "SELECT a.Contact__c, a.Id AS SubmissionId, a.question_14_Would_you_consider_leaving__c, b.AccountId, b.Id AS ContactId FROM NAM.VWForm_Submissions__c a LEFT JOIN NAM.VWContact b ON a.Contact__c = b.Id WHERE a.Contact__c IS NOT NULL AND (a.question_14_Would_you_consider_leaving__c LIKE '%have%' OR a.question_14_Would_you_consider_leaving__c LIKE '%consider%') AND a.question_14_Would_you_consider_leaving__c NOT LIKE '%not%'"
 business_owner_sql = "SELECT AccountId FROM NAM.VWContact WHERE Business_Owner__c NOT IN ('Unknown') AND Business_Owner__c IS NOT NULL"
 
-contacts = get_ods_dataframe(db_conn, contact_sql, ods_table)
-accounts = get_ods_dataframe(db_conn, accounts_sql, ods_table)
-board_members = get_ods_dataframe(db_conn, board_members_sql, ods_table)
-programs = get_ods_dataframe(db_conn, programs_sql, ods_table)
-daf = get_ods_dataframe(db_conn, daf_sql, ods_table)
-stock = get_ods_dataframe(db_conn, stock_sql, ods_table)
-planned_gift = get_ods_dataframe(db_conn, planned_gift_sql, ods_table)
-programs = get_ods_dataframe(db_conn, programs_sql, ods_table)
-survey_response = get_ods_dataframe(db_conn, survey_response_sql, ods_table)
-business_owner = get_ods_dataframe(db_conn, business_owner_sql, ods_table)
+contacts = get_ods_dataframe(db_engine, contact_sql, ods_table)
+accounts = get_ods_dataframe(db_engine, accounts_sql, ods_table)
+board_members = get_ods_dataframe(db_engine, board_members_sql, ods_table)
+programs = get_ods_dataframe(db_engine, programs_sql, ods_table)
+daf = get_ods_dataframe(db_engine, daf_sql, ods_table)
+stock = get_ods_dataframe(db_engine, stock_sql, ods_table)
+planned_gift = get_ods_dataframe(db_engine, planned_gift_sql, ods_table)
+programs = get_ods_dataframe(db_engine, programs_sql, ods_table)
+survey_response = get_ods_dataframe(db_engine, survey_response_sql, ods_table)
+business_owner = get_ods_dataframe(db_engine, business_owner_sql, ods_table)
 
 # Minor formatting for easier reading
 volunteer = programs[programs['Name'].str.contains('Volunteer')]
@@ -101,52 +65,74 @@ stock = stock.rename(columns={'AccountID':'AccountId'})
 # Points for each part of the planned giving score are calculated below.
 # The accounts df is the only df that contains more than one component of the final score.
 
-def Rolling_Status_Calc(row):
-    # Assign points for donor status. Non-donors get 0 points.
-    if row['Rolling_Status__c'] == 'Active':
-        return 5
-    elif row['Rolling_Status__c'] =='Lapsed':
-        return 3 
-    else:
-        return 0
-accounts['Rolling Status Points'] = accounts.apply(Rolling_Status_Calc, axis=1)
+# def Rolling_Status_Calc(row):
+#     # Assign points for donor status. Non-donors get 0 points.
+#     if row['Rolling_Status__c'] == 'Active':
+#         return 5
+#     elif row['Rolling_Status__c'] =='Lapsed':
+#         return 3 
+#     else:
+#         return 0
+# accounts['Rolling Status Points'] = accounts.apply(Rolling_Status_Calc, axis=1)
+accounts['Rolling Status Points'] = accounts['Rolling_Status__c'].map({'Active': 5, 'Lapsed': 3}).fillna(0).astype(int)
 
 
-def FP_Status_Calc(row):
-    # Assign points for freedom partner status. Non-active FPs get 1 point, non-FPs get 0 points.
-    if row['Freedom_Partner_Status__c'] == 'Active':
-        return 5
-    elif pd.notna(row['Freedom_Partner_Status__c']) == True:
-        return 1 
-    else:
-        return 0
-accounts['FP Status Points'] = accounts.apply(FP_Status_Calc, axis=1)
+# def FP_Status_Calc(row):
+#     # Assign points for freedom partner status. Non-active FPs get 1 point, non-FPs get 0 points.
+#     if row['Freedom_Partner_Status__c'] == 'Active':
+#         return 5
+#     elif pd.notna(row['Freedom_Partner_Status__c']) == True:
+#         return 1 
+#     else:
+#         return 0
+# accounts['FP Status Points'] = accounts.apply(FP_Status_Calc, axis=1)
+accounts['FP Status Points'] = np.where(accounts['Freedom_Partner_Status__c'] == 'Active', 5, np.where(pd.notna(accounts['Freedom_Partner_Status__c']), 1, 0))
 
 
-def Consec_Giving_Calc(row):
-    # Assign points based on years of consecutive giving. 0 Points if you've given for 8 years or fewer
-    if row['Number_of_Years_Consecutively_Giving__c'] >=8 and row['Number_of_Years_Consecutively_Giving__c'] <=10:
-        return 15
-    elif row['Number_of_Years_Consecutively_Giving__c'] >=11 and row['Number_of_Years_Consecutively_Giving__c'] <=14:
-        return 20
-    elif row['Number_of_Years_Consecutively_Giving__c'] >=15:
-        return 25
-    else:
-        return 0
-accounts['Cosecutive_Giving_Points'] = accounts.apply(Consec_Giving_Calc, axis=1)
+# def Consec_Giving_Calc(row):
+#     # Assign points based on years of consecutive giving. 0 Points if you've given for 8 years or fewer
+#     if row['Number_of_Years_Consecutively_Giving__c'] >=8 and row['Number_of_Years_Consecutively_Giving__c'] <=10:
+#         return 15
+#     elif row['Number_of_Years_Consecutively_Giving__c'] >=11 and row['Number_of_Years_Consecutively_Giving__c'] <=14:
+#         return 20
+#     elif row['Number_of_Years_Consecutively_Giving__c'] >=15:
+#         return 25
+#     else:
+#         return 0
+# accounts['Consecutive_Giving_Points'] = accounts.apply(Consec_Giving_Calc, axis=1)
+
+consec_giving_conditions = [
+    (accounts['Number_of_Years_Consecutively_Giving__c'] >= 8) & (accounts['Number_of_Years_Consecutively_Giving__c'] <= 10),
+    (accounts['Number_of_Years_Consecutively_Giving__c'] >= 11) & (accounts['Number_of_Years_Consecutively_Giving__c'] <= 14),
+    (accounts['Number_of_Years_Consecutively_Giving__c'] >= 15)]
+
+consec_giving_values = [15, 20, 25]
+
+accounts['Consecutive_Giving_Points'] = np.select(consec_giving_conditions, consec_giving_values, default=0)
+
 
 
 # Assign points based on how recent your most recent gift is. One point is given for each year you've given in the last five years.
 # This is an interim score to calculate the actual score at line 151
-accounts['Recent Giving Calc'] =(np.where(accounts['npo02__OppsClosedThisYear__c'] >=1, 1, 0)
-+ np.where(accounts['npo02__OppsClosedLastYear__c'] >=1, 1, 0)
-+ np.where(accounts['npo02__OppsClosed2YearsAgo__c'] >=1, 1, 0)
-+ np.where(accounts['Number_of_Gifts_3_Years_Ago__c'] >=1, 1, 0)
-+ np.where(accounts['Number_of_Gifts_4_Years_Ago__c'] >=1, 1, 0)
-+ np.where(accounts['Number_of_Gifts_5_Years_Ago__c'] >=1, 1, 0))
+# accounts['Recent Giving Calc'] = (np.where(accounts['npo02__OppsClosedThisYear__c'] >=1, 1, 0)
+# + np.where(accounts['npo02__OppsClosedLastYear__c'] >=1, 1, 0)
+# + np.where(accounts['npo02__OppsClosed2YearsAgo__c'] >=1, 1, 0)
+# + np.where(accounts['Number_of_Gifts_3_Years_Ago__c'] >=1, 1, 0)
+# + np.where(accounts['Number_of_Gifts_4_Years_Ago__c'] >=1, 1, 0)
+# + np.where(accounts['Number_of_Gifts_5_Years_Ago__c'] >=1, 1, 0))
 
-# If you've given in at least 3 of the last 5 years, you get 5 points, else 0 points.
+# # If you've given in at least 3 of the last 5 years, you get 5 points, else 0 points.
+# accounts['Recent Giving Points'] = np.where(accounts['Recent Giving Calc']>=3,5,0)
+
+accounts['Recent Giving Calc'] = (accounts[['npo02__OppsClosedThisYear__c', 
+                                            'npo02__OppsClosedLastYear__c', 
+                                            'npo02__OppsClosed2YearsAgo__c', 
+                                            'Number_of_Gifts_3_Years_Ago__c', 
+                                            'Number_of_Gifts_4_Years_Ago__c', 
+                                            'Number_of_Gifts_5_Years_Ago__c']] >= 1).sum(axis=1)
 accounts['Recent Giving Points'] = np.where(accounts['Recent Giving Calc']>=3,5,0)
+
+
 
 # Bonus points if donor gave within the first 7 years of IJM
 accounts['Early Donor Points'] = np.where(accounts['npo02__FirstCloseDate__c'] <= pd.to_datetime('2004-12-31'), 5, 0)
@@ -155,19 +141,24 @@ accounts['Early Donor Points'] = np.where(accounts['npo02__FirstCloseDate__c'] <
 accounts['Family Foundation Points'] = np.where(accounts['Family_Foundation__c'].isnull(),0,-15)
 
 
-def Years_Donated_Points(row):
-    # Total number of calendar years you've given to IJM. 10+ years = 13 points, 8+ uears = 10 points, else 0 points
-    if row['Years_Donated__c'] >=10:
-        return 13
-    elif row['Years_Donated__c'] >= 8:
-        return 10
-    else:
-        return 0
+# def Years_Donated_Points(row):
+#     # Total number of calendar years you've given to IJM. 10+ years = 13 points, 8+ uears = 10 points, else 0 points
+#     if row['Years_Donated__c'] >=10:
+#         return 13
+#     elif row['Years_Donated__c'] >= 8:
+#         return 10
+#     else:
+#         return 0
 
 # Years_Donated__c is an open text field that gets automatically filled in by Salesforce. Writes the actual year and appends for each year (e.g., 2023, 2024)
 # This counts the length of the text field to count the number of calendar years listed. 
 accounts['Years_Donated__c'] = accounts['Years_Donated__c'].str.len()/5 + .2 # format Years_Donated__c field before applying function
-accounts['Giving Years Points']= accounts.apply(Years_Donated_Points, axis=1) # apply function
+# accounts['Giving Years Points']= accounts.apply(Years_Donated_Points, axis=1) # apply function
+accounts['Giving Years Points'] = np.where(accounts['Years_Donated__c'] >= 10, 13, np.where(accounts['Years_Donated__c'] >= 8, 10, 0))
+
+
+
+
 
 # Board members get bonus points
 board_members['Board Member Points']=5
@@ -203,6 +194,7 @@ business_owner['Business Owner Points']=10
 volunteer = volunteer.drop_duplicates(subset=['AccountId'], keep='first')
 volunteer['Volunteer Leader Points']=5
 volunteer = volunteer[['AccountId','Volunteer Leader Points']]
+
 
 
 # Merge all dataframes into one at the account level
