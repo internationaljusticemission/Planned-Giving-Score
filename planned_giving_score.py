@@ -177,16 +177,3 @@ accounts_final=accounts_final[['AccountId','Planned Giving Score']]
 
 ### EXPORT ###
 accounts_final.to_csv('Planned_Giving_Score.csv', index=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
