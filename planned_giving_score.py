@@ -16,8 +16,8 @@ from util import get_ods_conn, get_ods_dataframe
 ods_server = 'ijmorg-sql-bi-ods-p01.database.windows.net'
 ods_database = 'db-sfods-prod01'
 ods_schema = 'CUBE'
-src_table = 'transactions_summary'
-ods_table = f'{ods_schema}.{src_table}'
+src_table = 'transactions_summary' # not needed?
+ods_table = f'{ods_schema}.{src_table}' # not needed?
 
 # In[]:
     
@@ -38,6 +38,7 @@ planned_gift_sql = "SELECT DISTINCT AccountID FROM NAM.VWOpportunity WHERE Type 
 survey_response_sql = "SELECT a.Contact__c, a.Id AS SubmissionId, a.question_14_Would_you_consider_leaving__c, b.AccountId, b.Id AS ContactId FROM NAM.VWForm_Submissions__c a LEFT JOIN NAM.VWContact b ON a.Contact__c = b.Id WHERE a.Contact__c IS NOT NULL AND (a.question_14_Would_you_consider_leaving__c LIKE '%have%' OR a.question_14_Would_you_consider_leaving__c LIKE '%consider%') AND a.question_14_Would_you_consider_leaving__c NOT LIKE '%not%'"
 business_owner_sql = "SELECT AccountId FROM NAM.VWContact WHERE Business_Owner__c NOT IN ('Unknown') AND Business_Owner__c IS NOT NULL"
 
+# remove all "ods_table"?
 contacts = get_ods_dataframe(db_engine, contact_sql, ods_table)
 accounts = get_ods_dataframe(db_engine, accounts_sql, ods_table)
 board_members = get_ods_dataframe(db_engine, board_members_sql, ods_table)
