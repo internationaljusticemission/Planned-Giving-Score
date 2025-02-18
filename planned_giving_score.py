@@ -16,8 +16,6 @@ from util import get_ods_conn, get_ods_dataframe
 ods_server = 'ijmorg-sql-bi-ods-p01.database.windows.net'
 ods_database = 'db-sfods-prod01'
 ods_schema = 'CUBE'
-src_table = 'transactions_summary' # not needed?
-ods_table = f'{ods_schema}.{src_table}' # not needed?
 
 # In[]:
     
@@ -39,16 +37,16 @@ survey_response_sql = "SELECT a.Contact__c, a.Id AS SubmissionId, a.question_14_
 business_owner_sql = "SELECT AccountId FROM NAM.VWContact WHERE Business_Owner__c NOT IN ('Unknown') AND Business_Owner__c IS NOT NULL"
 
 # remove all "ods_table"?
-contacts = get_ods_dataframe(db_engine, contact_sql, ods_table)
-accounts = get_ods_dataframe(db_engine, accounts_sql, ods_table)
-board_members = get_ods_dataframe(db_engine, board_members_sql, ods_table)
-programs = get_ods_dataframe(db_engine, programs_sql, ods_table)
-daf = get_ods_dataframe(db_engine, daf_sql, ods_table)
-stock = get_ods_dataframe(db_engine, stock_sql, ods_table)
-planned_gift = get_ods_dataframe(db_engine, planned_gift_sql, ods_table)
-programs = get_ods_dataframe(db_engine, programs_sql, ods_table)
-survey_response = get_ods_dataframe(db_engine, survey_response_sql, ods_table)
-business_owner = get_ods_dataframe(db_engine, business_owner_sql, ods_table)
+contacts = get_ods_dataframe(db_engine, contact_sql)
+accounts = get_ods_dataframe(db_engine, accounts_sql)
+board_members = get_ods_dataframe(db_engine, board_members_sql)
+programs = get_ods_dataframe(db_engine, programs_sql)
+daf = get_ods_dataframe(db_engine, daf_sql)
+stock = get_ods_dataframe(db_engine, stock_sql)
+planned_gift = get_ods_dataframe(db_engine, planned_gift_sql)
+programs = get_ods_dataframe(db_engine, programs_sql)
+survey_response = get_ods_dataframe(db_engine, survey_response_sql)
+business_owner = get_ods_dataframe(db_engine, business_owner_sql)
 
 # Minor formatting for easier reading
 volunteer = programs[programs['Name'].str.contains('Volunteer')]
