@@ -34,7 +34,7 @@ def get_ods_conn(server, database):
     )
 
 
-def get_ods_dataframe(db, sql, table):
+def get_ods_dataframe(db, sql):
     with db.connect().execution_options(stream_results=True) as azure_db_con:
         sql_string = sql
         df = pd.read_sql_query(sqlalchemy.text(sql_string), azure_db_con)

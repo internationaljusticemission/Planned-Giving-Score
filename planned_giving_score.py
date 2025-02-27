@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jul  2 10:40:45 2024
-
 @author: adampayne
+Account.RE_Planned_Giving_Score__c
 """
 
 # In[1]:
