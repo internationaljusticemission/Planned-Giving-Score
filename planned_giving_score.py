@@ -158,7 +158,7 @@ accounts_final=accounts_final.replace(np.nan,0)
 accounts_final['Planned Giving Score']=(
     accounts_final['Rolling Status Points']
     +accounts_final['FP Status Points']
-    +accounts_final['Cosecutive_Giving_Points']
+    +accounts_final['Consecutive_Giving_Points']
     +accounts_final['Recent Giving Points']
     +accounts_final['Early Donor Points']
     +accounts_final['Family Foundation Points']
