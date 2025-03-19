@@ -10,12 +10,12 @@ Account.RE_Planned_Giving_Score__c
 
 import pandas as pd
 import numpy as np
-from util import get_ods_conn, get_ods_dataframe
+from util import get_ods_conn, get_ods_data
+from config import server_prod_address, database_prod_address
 
 # os.environ['PATH'] = '/opt/homebrew/Cellar/azure-cli/2.59.0/bin'
-ods_server = 'ijmorg-sql-bi-ods-p01.database.windows.net'
-ods_database = 'db-sfods-prod01'
-ods_schema = 'CUBE'
+ods_server = server_prod_address
+ods_database = database_prod_address
 
 # In[]:
     
@@ -24,32 +24,30 @@ ods_schema = 'CUBE'
 # family foundation status, and more. SQL queries for all parts of the score are below
 
 db_engine = get_ods_conn(ods_server, ods_database)
+sql_files = ['contacts.sql',
+             'accounts.sql',
+             'board_members.sql',
+             'programs.sql',
+             # 'volunteers.sql', # ignore this sql file. Keep as archive, is the same exact query as programs.sql minus filter on program name. (achieved in .contains on line 50)
+             'daf.sql',
+             'stock.sql',
+             'planned_gift.sql',
+             'survey_response.sql',
+             'business_owner.sql']
 
-contact_sql = "SELECT AccountId, Id,Phone, Email, Alumni_IJM__c, Prayer_Partner__c, MailingStreet, MailingCity,MailingState,MailingPostalCode,MailingCountry FROM NAM.VWContact WHERE MailingCountry IN ('United States', 'Canada')"
-accounts_sql = "SELECT Id, Years_Donated__c, npo02__FirstCloseDate__c, npo02__LastCloseDate__c, npo02__NumberOfClosedOpps__c, Number_of_Years_Consecutively_Giving__c, npo02__OppsClosedThisYear__c, npo02__OppsClosedLastYear__c, npo02__OppsClosed2YearsAgo__c, Number_of_Gifts_3_Years_Ago__c, Number_of_Gifts_4_Years_Ago__c, Number_of_Gifts_5_Years_Ago__c, PFO_Partnership_Status__c, Family_Foundation__c, [Type], Rolling_Status__c, Freedom_Partner_Status__c,BillingStreet,BillingCity,BillingStateCode,BillingPostalCode,BillingCountryCode FROM NAM.VWAccount Where [Type] = 'Household' and BillingCountryCode IN ('US', 'CA')"
-board_members_sql = "SELECT a.npe5__Contact__c, c.Id, c.AccountId FROM (SELECT npe5__Contact__c FROM [CNF].[VWnpe5__Affiliation__c] WHERE [npe5__Organization__c] = '001o00000110h2CAAQ' AND [RecordTypeId] = '012o0000000u0knAAA' AND [Title__c] = 'Board Member' AND [npe5__Status__c] = 'Former') a LEFT JOIN [NAM].[VWContact] c ON a.npe5__Contact__c = c.Id"
-programs_sql = "SELECT m.Contact__c, m.Role__c, m.Start_Date__c, m.End_Date__c, m.Program__c, m.Name, m.Type__c, m.RecordTypeId, m.Program_Id, c.Id, c.AccountId FROM (SELECT NAM.VWMember__c.Contact__c, NAM.VWMember__c.Role__c, NAM.VWMember__c.Start_Date__c, NAM.VWMember__c.End_Date__c, NAM.VWMember__c.Program__c, CNF.VWPrograms__c.Name, CNF.VWPrograms__c.Type__c, CNF.VWPrograms__c.RecordTypeId, CNF.VWPrograms__c.Id AS Program_Id FROM NAM.VWMember__c LEFT JOIN CNF.VWPrograms__c ON NAM.VWMember__c.Program__c = CNF.VWPrograms__c.Id) m LEFT JOIN NAM.VWContact c ON m.Contact__c = c.Id"
-volunteers_sql = "SELECT m.Contact__c, m.Role__c, m.Start_Date__c, m.End_Date__c, m.Program__c, m.Name, m.Type__c, m.RecordTypeId, m.Program_Id, c.Id, c.AccountId FROM (SELECT NAM.VWMember__c.Contact__c, NAM.VWMember__c.Role__c, NAM.VWMember__c.Start_Date__c, NAM.VWMember__c.End_Date__c, NAM.VWMember__c.Program__c, CNF.VWPrograms__c.Name, CNF.VWPrograms__c.Type__c, CNF.VWPrograms__c.RecordTypeId, CNF.VWPrograms__c.Id AS Program_Id FROM NAM.VWMember__c LEFT JOIN CNF.VWPrograms__c ON NAM.VWMember__c.Program__c = CNF.VWPrograms__c.Id WHERE CNF.VWPrograms__c.Name LIKE '%Volunteer%') m LEFT JOIN NAM.VWContact c ON m.Contact__c = c.Id"
-daf_sql = "SELECT DISTINCT AccountID FROM NAM.VWOpportunity WHERE Type = 'Donor Advised Fund'"
-stock_sql = "SELECT DISTINCT AccountID FROM NAM.VWOpportunity WHERE Type = 'Stock Gift'"
-planned_gift_sql = "SELECT DISTINCT AccountID FROM NAM.VWOpportunity WHERE Type = 'Planned Gift' AND Amount > 0 AND StageName NOT IN ('Withdrawn', 'Closed Lost', 'Closed Won', 'Pledge Completed', 'Contractual Posted','refunded', 'voided', 'To Be Deleted')"
-survey_response_sql = "SELECT a.Contact__c, a.Id AS SubmissionId, a.question_14_Would_you_consider_leaving__c, b.AccountId, b.Id AS ContactId FROM NAM.VWForm_Submissions__c a LEFT JOIN NAM.VWContact b ON a.Contact__c = b.Id WHERE a.Contact__c IS NOT NULL AND (a.question_14_Would_you_consider_leaving__c LIKE '%have%' OR a.question_14_Would_you_consider_leaving__c LIKE '%consider%') AND a.question_14_Would_you_consider_leaving__c NOT LIKE '%not%'"
-business_owner_sql = "SELECT AccountId FROM NAM.VWContact WHERE Business_Owner__c NOT IN ('Unknown') AND Business_Owner__c IS NOT NULL"
-
-# remove all "ods_table"?
-contacts = get_ods_dataframe(db_engine, contact_sql)
-accounts = get_ods_dataframe(db_engine, accounts_sql)
-board_members = get_ods_dataframe(db_engine, board_members_sql)
-programs = get_ods_dataframe(db_engine, programs_sql)
-daf = get_ods_dataframe(db_engine, daf_sql)
-stock = get_ods_dataframe(db_engine, stock_sql)
-planned_gift = get_ods_dataframe(db_engine, planned_gift_sql)
-programs = get_ods_dataframe(db_engine, programs_sql)
-survey_response = get_ods_dataframe(db_engine, survey_response_sql)
-business_owner = get_ods_dataframe(db_engine, business_owner_sql)
+contacts = get_ods_data(db_engine, sql_files[0])
+accounts = get_ods_data(db_engine, sql_files[1])
+board_members = get_ods_data(db_engine, sql_files[2])
+programs = get_ods_data(db_engine, sql_files[3])
+# volunteer = '' # this df is created in line 50 by filtering the programs df
+daf = get_ods_data(db_engine, sql_files[4])
+stock = get_ods_data(db_engine, sql_files[5])
+planned_gift = get_ods_data(db_engine, sql_files[6])
+survey_response = get_ods_data(db_engine, sql_files[7])
+business_owner = get_ods_data(db_engine, sql_files[8])
 
 # Minor formatting for easier reading
-volunteer = programs[programs['Name'].str.contains('Volunteer')]
+volunteer = programs[programs['Name'].str.contains('Volunteer', case=False, na=False)]
 alumni = contacts[contacts['Alumni_IJM__c'] == 'Yes']
 accounts = accounts.rename(columns={'Id':'AccountId'})
 planned_gift = planned_gift.rename(columns={'AccountID':'AccountId'})
