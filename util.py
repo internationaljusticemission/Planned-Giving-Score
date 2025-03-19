@@ -34,8 +34,15 @@ def get_ods_conn(server, database):
     )
 
 
-def get_ods_dataframe(db, sql):
-    with db.connect().execution_options(stream_results=True) as azure_db_con:
-        sql_string = sql
-        df = pd.read_sql_query(sqlalchemy.text(sql_string), azure_db_con)
-    return df
+def get_ods_data(db, sql_file):
+    sql_path = f'./sql/{sql_file}'
+    try:
+        with open(sql_path) as fpr:
+            query_string = fpr.read()
+            with (db.connect().execution_options(stream_results=True) as azure_db_con):
+                df = pd.read_sql_query(sqlalchemy.text(query_string), azure_db_con)
+        return df
+    except FileNotFoundError:
+        # print(f'SQL file sql{slash}{sql_file} not found')
+        print(f'SQL file {sql_file} not found')
+        exit()
