@@ -61,7 +61,7 @@ stock = stock.rename(columns={'AccountID':'AccountId'})
 # The accounts df is the only df that contains more than one component of the final score.
 
 # Assign points for donor status. Non-donors get 0 points.
-accounts['Rolling Status Points'] = accounts['Rolling_Status__c'].map({'Active': 5, 'Lapsed': 3}).fillna(0).astype(int)
+accounts['Rolling Status Points'] = accounts['Rolling_Status_Calculated__c'].map({'Active': 5, 'Lapsed': 3}).fillna(0).astype(int)
 
 # Assign points for freedom partner status. Non-active FPs get 1 point, non-FPs get 0 points.
 accounts['FP Status Points'] = np.where(accounts['Freedom_Partner_Status__c'] == 'Active', 5, np.where(pd.notna(accounts['Freedom_Partner_Status__c']), 1, 0))
