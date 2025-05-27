@@ -10,6 +10,7 @@ Account.RE_Planned_Giving_Score__c
 
 import pandas as pd
 import numpy as np
+from datetime import date
 from util import get_ods_conn, get_ods_data
 from config import server_prod_address, database_prod_address
 
@@ -91,7 +92,7 @@ accounts['Recent Giving Points'] = np.where(accounts['Recent Giving Calc']>=3,5,
 
 
 # Bonus points if donor gave within the first 7 years of IJM
-accounts['Early Donor Points'] = np.where(accounts['npo02__FirstCloseDate__c'] <= pd.to_datetime('2004-12-31'), 5, 0)
+accounts['Early Donor Points'] = np.where(accounts['npo02__FirstCloseDate__c'] <= date(2004, 12, 31), 5, 0)
 
 # Having a family foundation is a negative for the planned giving score since their family foundation will receive their inheritance
 accounts['Family Foundation Points'] = np.where(accounts['Family_Foundation__c'].isnull(),0,-15)
