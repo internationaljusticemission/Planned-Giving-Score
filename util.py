@@ -23,7 +23,7 @@ def get_ods_conn(server, database):
         exptoken += bytes({i})
         exptoken += bytes(1)
         tokenstruct = struct.pack("=i", len(exptoken)) + exptoken
-    conn_string = "Driver=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";ApplicationIntent=ReadWrite"
+    conn_string = "Driver=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";ApplicationIntent=ReadOnly"
     SQL_COPT_SS_ACCESS_TOKEN = 1256
     return sqlalchemy.create_engine(
         "mssql+pyodbc:///?odbc_connect={0}".format(conn_string),
