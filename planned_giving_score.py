@@ -6,30 +6,27 @@ Created on Tue Jul  2 10:40:45 2024
 Account.RE_Planned_Giving_Score__c
 """
 
-# In[1]:
-
 import pandas as pd
 import numpy as np
 from datetime import date
 from util import get_ods_conn, get_ods_data
 from config import server_prod_address, database_prod_address
 
-# os.environ['PATH'] = '/opt/homebrew/Cellar/azure-cli/2.59.0/bin'
-ods_server = server_prod_address
-ods_database = database_prod_address
+today = date.today()
+today_month_start = today.replace(day=1)
 
-# In[]:
+# os.environ['PATH'] = '/opt/homebrew/Cellar/azure-cli/2.59.0/bin'
     
 ### EXTRACT ###
 # Data for the planned giving score comes from donation history, gift types, campaign participation, volunteering,
 # family foundation status, and more. SQL queries for all parts of the score are below
 
-db_engine = get_ods_conn(ods_server, ods_database)
+db_engine = get_ods_conn(server_prod_address, database_prod_address)
 sql_files = ['contacts.sql',
              'accounts.sql',
              'board_members.sql',
              'programs.sql',
-             # 'volunteers.sql', # ignore this sql file. Keep as archive, is the same exact query as programs.sql minus filter on program name. (achieved in .contains on line 50)
+             # 'volunteers.sql', # ignore this sql file. Keep as archive, is the same exact query as programs.sql minus filter on program name. (achieved in .contains() on line 45)
              'daf.sql',
              'stock.sql',
              'planned_gift.sql',
@@ -55,7 +52,6 @@ planned_gift = planned_gift.rename(columns={'AccountID':'AccountId'})
 daf = daf.rename(columns={'AccountID':'AccountId'})
 stock = stock.rename(columns={'AccountID':'AccountId'})
 
-# In[]:
 
 ### TRANSFORM ###
 # Points for each part of the planned giving score are calculated below.
@@ -171,6 +167,9 @@ accounts_final['Planned Giving Score']=(
 
 # Limit dataframe to the relevant columns
 accounts_final=accounts_final[['AccountId','Planned Giving Score']]
+accounts_final['insert_month'] = today_month_start
+
 
 ### EXPORT ###
 accounts_final.to_csv('Planned_Giving_Score.csv', index=False)
+accounts_final.to_sql('planned_giving_scores_archive', db_engine, schema='CUBE', index=False, if_exists='append')
