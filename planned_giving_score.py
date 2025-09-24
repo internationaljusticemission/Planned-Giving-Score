@@ -31,7 +31,9 @@ sql_files = ['contacts.sql',
              'stock.sql',
              'planned_gift.sql',
              'survey_response.sql',
-             'business_owner.sql']
+             'business_owner.sql',
+             'summary_accounts.sql'] # filter by donors for archive append
+
 
 contacts = get_ods_data(db_engine, sql_files[0])
 accounts = get_ods_data(db_engine, sql_files[1])
@@ -43,6 +45,7 @@ stock = get_ods_data(db_engine, sql_files[5])
 planned_gift = get_ods_data(db_engine, sql_files[6])
 survey_response = get_ods_data(db_engine, sql_files[7])
 business_owner = get_ods_data(db_engine, sql_files[8])
+summary_accounts = get_ods_data(db_engine, sql_files[9])
 
 # Minor formatting for easier reading
 volunteer = programs[programs['Name'].str.contains('Volunteer', case=False, na=False)]
@@ -165,11 +168,15 @@ accounts_final['Planned Giving Score']=(
     +accounts_final['DAF Points']
 )
 
-# Limit dataframe to the relevant columns
-accounts_final=accounts_final[['AccountId','Planned Giving Score']]
-accounts_final['insert_month'] = today_month_start
-
-
 ### EXPORT ###
+accounts_final=accounts_final[['AccountId','Planned Giving Score']]
 accounts_final.to_csv('Planned_Giving_Score.csv', index=False)
-accounts_final.to_sql('planned_giving_scores_archive', db_engine, schema='CUBE', index=False, if_exists='append')
+
+# Limit to donors for the archive append in ODS
+donor_accounts = list(summary_accounts['account_id'])
+accounts_append = accounts_final.loc[accounts_final['AccountId'].isin(donor_accounts)]
+accounts_append = accounts_append.rename(columns={'AccountId':'account_id',
+                                                  'Planned Giving Score':'planned_giving_score'})
+today_month_start_str = today_month_start.strftime('%Y-%m-%d')
+accounts_append['insert_month'] = today_month_start_str
+accounts_append.to_sql('planned_giving_scores_archive', db_engine, schema='CUBE', index=False, if_exists='append')
