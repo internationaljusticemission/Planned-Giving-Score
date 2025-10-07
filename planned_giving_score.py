@@ -21,7 +21,7 @@ today_month_start = today.replace(day=1)
 # Data for the planned giving score comes from donation history, gift types, campaign participation, volunteering,
 # family foundation status, and more. SQL queries for all parts of the score are below
 
-db_engine = get_ods_conn(server_prod_address, database_prod_address)
+db_engine = get_ods_conn(server_prod_address, database_prod_address, 'ReadWrite')
 sql_files = ['contacts.sql',
              'accounts.sql',
              'board_members.sql',
