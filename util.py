@@ -5,16 +5,19 @@ Created on Wed Feb 12 17:02:44 2025
 
 @author: lta
 """
-from azure.identity import AzureCliCredential
+import azure.identity
 import struct
 import sqlalchemy
 import pandas as pd
 
-
-def get_ods_conn(server, database):
+def get_ods_conn(server, database, intent):
     driver = '{ODBC Driver 18 for SQL Server}'
-    credential = AzureCliCredential()
-    database_token = credential.get_token('https://database.windows.net/')
+    try:
+        credential = azure.identity.AzureCliCredential()
+        database_token = credential.get_token('https://database.windows.net/')
+    except azure.identity._exceptions.CredentialUnavailableError:
+        exit()
+
     # get bytes from token obtained
     tokenb = bytes(database_token[0], "UTF-8")
     exptoken = b''
@@ -23,7 +26,8 @@ def get_ods_conn(server, database):
         exptoken += bytes({i})
         exptoken += bytes(1)
         tokenstruct = struct.pack("=i", len(exptoken)) + exptoken
-    conn_string = "Driver=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";ApplicationIntent=ReadWrite"
+
+    conn_string = "Driver=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";ApplicationIntent=" + intent
     SQL_COPT_SS_ACCESS_TOKEN = 1256
     return sqlalchemy.create_engine(
         "mssql+pyodbc:///?odbc_connect={0}".format(conn_string),
@@ -32,7 +36,6 @@ def get_ods_conn(server, database):
         pool_size=10,
         max_overflow=20
     )
-
 
 def get_ods_data(db, sql_file):
     sql_path = f'./sql/{sql_file}'
