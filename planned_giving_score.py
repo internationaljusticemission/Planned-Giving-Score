@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import date
 from util import get_ods_conn, get_ods_data
-from config import server_prod_address, database_prod_address
+from config import prod_server_name, prod_database_name
 
 today = date.today()
 today_month_start = today.replace(day=1)
@@ -21,7 +21,7 @@ today_month_start = today.replace(day=1)
 # Data for the planned giving score comes from donation history, gift types, campaign participation, volunteering,
 # family foundation status, and more. SQL queries for all parts of the score are below
 
-db_engine = get_ods_conn(server_prod_address, database_prod_address, 'ReadWrite')
+db_engine = get_ods_conn(prod_server_name, prod_database_name, 'ReadWrite')
 sql_files = ['contacts.sql',
              'accounts.sql',
              'board_members.sql',
@@ -33,7 +33,7 @@ sql_files = ['contacts.sql',
              'survey_response.sql',
              'business_owner.sql',
              'summary_accounts.sql'] # filter by donors for archive append
-
+sql_files = [f'sql/{name}' for name in sql_files]
 
 contacts = get_ods_data(db_engine, sql_files[0])
 accounts = get_ods_data(db_engine, sql_files[1])
