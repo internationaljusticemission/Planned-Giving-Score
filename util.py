@@ -16,6 +16,7 @@ def get_ods_conn(server, database, intent):
         credential = azure.identity.AzureCliCredential()
         database_token = credential.get_token('https://database.windows.net/')
     except azure.identity._exceptions.CredentialUnavailableError:
+        print('\nError in Azure credentials (try "az login")')
         exit()
 
     # get bytes from token obtained
@@ -48,4 +49,7 @@ def get_ods_data(db, sql_file):
     except FileNotFoundError:
         # print(f'SQL file sql{slash}{sql_file} not found')
         print(f'SQL file {sql_file} not found')
+        exit()
+    except sqlalchemy.exc.ProgrammingError:
+        print('\nError in database connection (check VPN) or SQL query (check syntax)')
         exit()
