@@ -9,6 +9,7 @@ import azure.identity
 import struct
 import sqlalchemy
 import pandas as pd
+import os
 
 def get_ods_conn(server, database, intent):
     driver = '{ODBC Driver 18 for SQL Server}'
@@ -38,18 +39,18 @@ def get_ods_conn(server, database, intent):
         max_overflow=20
     )
 
-def get_ods_data(db, sql_file):
-    sql_path = f'./sql/{sql_file}'
+def get_ods_data(db, sql_input):
+    if isinstance(sql_input, list):
+        sql_query = ' '.join(sql_input)
+    elif os.path.isfile(sql_input):
+        with open(sql_input) as fpr:
+            sql_query = fpr.read()
+    else:
+        sql_query = sql_input.strip()
     try:
-        with open(sql_path) as fpr:
-            query_string = fpr.read()
-            with (db.connect().execution_options(stream_results=True) as azure_db_con):
-                df = pd.read_sql_query(sqlalchemy.text(query_string), azure_db_con)
+        with (db.connect().execution_options(stream_results=True) as azure_db_con):
+            df = pd.read_sql_query(sqlalchemy.text(sql_query), azure_db_con)
         return df
-    except FileNotFoundError:
-        # print(f'SQL file sql{slash}{sql_file} not found')
-        print(f'SQL file {sql_file} not found')
-        exit()
     except sqlalchemy.exc.ProgrammingError:
         print('\nError in database connection (check VPN) or SQL query (check syntax)')
         exit()
