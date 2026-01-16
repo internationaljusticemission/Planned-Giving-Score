@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import date
 from util import get_ods_conn, get_ods_data
-from config import prod_server_name, prod_database_name
+from config import server_prod_address, database_prod_address
 
 today = date.today()
 today_month_start = today.replace(day=1)
